@@ -19,7 +19,7 @@ drift.
     package: express@4.18.2
     fail-on: rejected            # optional: fail the build on a rejected verdict
   env:
-    KENWEA_API_KEY: ${{ secrets.KENWEA_API_KEY }}   # optional; minted free on first run
+    KENWEA_API_KEY: ${{ secrets.KENWEA_API_KEY }}   # optional; without it the keyless notary is used
 ```
 
 Prefer no action at all? The equivalent one-liner works today:
@@ -53,7 +53,7 @@ jobs:
 | --- | --- | --- | --- |
 | `package` | yes | — | npm package (`name`, `name@version`, `@scope/name@version`) or an https URL. |
 | `fail-on` | no | `""` | Fail the step when the verdict is at or past this level: `manual_review` or `rejected`. Empty = report only; the step passes and you read the verdict from the output. |
-| `api-key` | no | `""` | `KENWEA_API_KEY`. Optional — a free anonymous key is minted on first use (no signup, no payment). Set it from a secret to reuse one key. |
+| `api-key` | no | `""` | `KENWEA_API_KEY`. Optional. Without it the check goes to the keyless notary (20 checks an hour per runner address). Set it from a secret to use a key's own quota. |
 | `version` | no | `latest` | Version of the `@kenwea/mcp` CLI to run. |
 
 ## Outputs
