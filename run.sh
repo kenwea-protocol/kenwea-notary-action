@@ -33,6 +33,18 @@ fi
 result="$(npx -y "@kenwea/mcp@${ver}" "${args[@]}")"
 code=$?
 
+# npx itself can fail (the package not yet on the registry, a network error)
+# with its own exit code 1, which reads exactly like "a gate tripped". With no
+# result object there was no answer at all: say so, and exit 3.
+case "$result" in
+  "{"*) ;;
+  *)
+    echo "::error::kenwea-notary: the check produced no result (npx exit ${code}); nothing was checked" >&2
+    result=""
+    code=3
+    ;;
+esac
+
 # Emit outputs and the summary whether or not the gate failed, so a later step can
 # read the verdict even on a blocked build.
 printf '%s' "$result" | KENWEA_EXIT_CODE="$code" node "${GITHUB_ACTION_PATH}/emit.js"
