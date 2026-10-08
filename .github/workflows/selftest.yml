@@ -2,48 +2,46 @@ name: selftest
 on:
   workflow_dispatch:
 
-# Manual-run only, on purpose. On `push`, each `uses: ./` step with no key would mint
-# a fresh anonymous "kenwea-mcp-check" agent on the live platform, and those inflate
-# the platform's arrivals count (they are our CI, not users). Running on demand keeps
-# the regression check available without minting on every commit.
-#
-# To restore automatic runs without minting: set a repo secret KENWEA_API_KEY to a
-# synthetic-marked key. The steps below already pass it through, so the runs reuse
-# that one marked agent instead of minting new ones, and you can add `push:` back.
+# Manual-run only: each run spends three of the keyless notary's checks for this
+# runner's address. Since @kenwea/mcp 0.2.7 nothing is minted on anyone's behalf.
 jobs:
   notarize:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # Report-only: debug declares no install script -> manual_review, no gate, job passes.
+      # Report-only: debug runs nothing at install. Verified, no gate, passes.
       - id: notary
         uses: ./
         with:
-          package: debug
-          api-key: ${{ secrets.KENWEA_API_KEY }}
+          package: debug@4.4.3
 
-      - name: assert outputs are populated and signed
+      - name: assert the outputs come from a verified record
         run: |
-          echo "verdict = ${{ steps.notary.outputs.verdict }}"
-          echo "sha256  = ${{ steps.notary.outputs.sha256 }}"
-          echo "checked = ${{ steps.notary.outputs.checked }}"
-          echo "signed  = ${{ steps.notary.outputs.signed }}"
-          test -n "${{ steps.notary.outputs.verdict }}" || { echo "::error::no verdict output"; exit 1; }
+          echo "verdict=${{ steps.notary.outputs.verdict }} reason=${{ steps.notary.outputs.reason-code }} steps='${{ steps.notary.outputs.install-steps }}' signed=${{ steps.notary.outputs.signed }} exit=${{ steps.notary.outputs.exit-code }}"
           test "${{ steps.notary.outputs.checked }}" = "true" || { echo "::error::checked not true"; exit 1; }
-          test "${{ steps.notary.outputs.signed }}"  = "true" || { echo "::error::result not signed"; exit 1; }
+          test "${{ steps.notary.outputs.signed }}" = "true" || { echo "::error::record not verified"; exit 1; }
+          test "${{ steps.notary.outputs.reason-code }}" = "no_install_steps" || { echo "::error::unexpected reason code"; exit 1; }
+          test -z "${{ steps.notary.outputs.install-steps }}" || { echo "::error::debug runs nothing at install"; exit 1; }
+          test "${{ steps.notary.outputs.exit-code }}" = "0" || { echo "::error::exit code not 0"; exit 1; }
 
-      # The gate must fire: manual_review with --fail-on manual_review fails the step.
+      # The gate must fire: core-js runs a postinstall.
       - id: gated
         continue-on-error: true
         uses: ./
         with:
-          package: debug
-          fail-on: manual_review
-          api-key: ${{ secrets.KENWEA_API_KEY }}
+          package: core-js@3.50.0
+          fail-on: install-scripts
 
-      - name: assert the gate fired
+      - name: assert the install-scripts gate fired
         run: |
-          echo "gated outcome = ${{ steps.gated.outcome }}"
-          test "${{ steps.gated.outcome }}" = "failure" || { echo "::error::--fail-on did not gate"; exit 1; }
-          echo "gate fired as expected"
+          test "${{ steps.gated.outcome }}" = "failure" || { echo "::error::install-scripts did not gate"; exit 1; }
+          test "${{ steps.gated.outputs.exit-code }}" = "1" || { echo "::error::exit code not 1"; exit 1; }
+          test "${{ steps.gated.outputs.install-steps }}" = "postinstall" || { echo "::error::install-steps not reported"; exit 1; }
+
+      # And must not fire on a quiet package: debug runs nothing, so nothing reached.
+      - id: quiet
+        uses: ./
+        with:
+          package: debug@4.4.3
+          fail-on: network

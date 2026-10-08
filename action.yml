@@ -1,11 +1,11 @@
 name: "Kenwea Notary"
-description: "Notarize what an npm package does at install-time — a signed, third-party sandbox verdict you can forward."
+description: "Notarize what an npm package does at install-time — a signed, third-party sandbox record, verified in the runner, that a build can gate on."
 author: "Kenwea Protocol"
 
 # A composite action, on purpose: it runs the published @kenwea/mcp CLI rather than
 # bundling or reimplementing the check. The Action and the CLI can never drift,
 # because there is only one of them -- the Action is a thin, auditable shell around
-# `npx -y @kenwea/mcp check … --json`.
+# `npx -y @kenwea/mcp@<version> check … --json`.
 
 branding:
   icon: "shield"
@@ -16,22 +16,31 @@ inputs:
     description: "npm package (name, name@version, @scope/name@version) or an https URL to check."
     required: true
   fail-on:
-    description: "Fail the step when the verdict is at or past this level: 'manual_review' or 'rejected'. Empty = report only, the step passes and you read the verdict from the output."
+    description: "Gates that fail the step, comma separated: install-scripts (it runs anything at install), network (an install step tried to reach the network, or did not finish), manual_review, rejected. Empty = report only. A gate that gets no answer, or an answer that does not verify, fails closed."
     required: false
     default: ""
   api-key:
-    description: "KENWEA_API_KEY. Optional — a free anonymous key is minted on first use (no signup, no payment). Set it from a secret to reuse one key across runs."
+    description: "A Kenwea API key, from a secret. Optional: without it the keyless notary is used (20 checks an hour per runner address). Left empty, it does not override a KENWEA_API_KEY set on the job."
     required: false
     default: ""
   version:
-    description: "Version of the @kenwea/mcp CLI to run."
+    description: "Version of the @kenwea/mcp CLI to run. Pinned so a new release never changes a build without a change here."
     required: false
-    default: "latest"
+    default: "0.3.0"
 
 outputs:
   verdict:
-    description: "approved | manual_review | rejected | notarized (empty when not checked)."
+    description: "approved | manual_review | rejected | notarized, from the signed record (empty when not checked)."
     value: ${{ steps.notary.outputs.verdict }}
+  reason-code:
+    description: "The signed reason code, for example ran_ok, ran_tried_network, no_install_steps, install_step_failed, step_timed_out."
+    value: ${{ steps.notary.outputs.reason-code }}
+  install-steps:
+    description: "What runs at install, comma separated, from the signed record (empty when nothing does)."
+    value: ${{ steps.notary.outputs.install-steps }}
+  reached:
+    description: "Network addresses and DNS names the install steps tried to reach, comma separated (empty when none)."
+    value: ${{ steps.notary.outputs.reached }}
   sha256:
     description: "sha256 of the exact bytes that were checked."
     value: ${{ steps.notary.outputs.sha256 }}
@@ -39,8 +48,11 @@ outputs:
     description: "'true' if a verdict was produced, 'false' for an honest non-answer (could not fetch)."
     value: ${{ steps.notary.outputs.checked }}
   signed:
-    description: "'true' if the result carries a signed attestation."
+    description: "'true' if the record is signed and verified in the runner against Kenwea's published keys."
     value: ${{ steps.notary.outputs.signed }}
+  exit-code:
+    description: "The CLI's exit code: 0 ok, 1 a gate tripped, 2 bad input, 3 no answer, 4 did not verify."
+    value: ${{ steps.notary.outputs.exit-code }}
 
 runs:
   using: "composite"
@@ -51,5 +63,5 @@ runs:
       env:
         KENWEA_PACKAGE: ${{ inputs.package }}
         KENWEA_FAIL_ON: ${{ inputs.fail-on }}
-        KENWEA_API_KEY: ${{ inputs.api-key }}
+        KENWEA_INPUT_API_KEY: ${{ inputs.api-key }}
         KENWEA_MCP_VERSION: ${{ inputs.version }}
