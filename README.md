@@ -10,7 +10,7 @@ in your runner** before any output is set: the signature against Kenwea's publis
 key list, and the tarball against the registry's `dist.integrity`.
 
 It is a thin wrapper around the published [`@kenwea/mcp`](https://www.npmjs.com/package/@kenwea/mcp)
-CLI (`npx -y @kenwea/mcp@0.3.1 check … --json`), so the Action and the tool can never
+CLI (`npx -y @kenwea/mcp@0.4.0 check … --json`), so the Action and the tool can never
 drift.
 
 > **Note:** this directory is the development source. The action is published at
@@ -18,7 +18,7 @@ drift.
 > The equivalent that needs no action at all is one `run:` step:
 >
 > ```yaml
-> - run: npx -y @kenwea/mcp@0.3.1 check express@4.18.2 --fail-on install-scripts,network
+> - run: npx -y @kenwea/mcp@0.4.0 check express@4.18.2 --fail-on install-scripts,network
 > ```
 
 ## Usage
@@ -27,7 +27,7 @@ drift.
 - uses: kenwea-protocol/kenwea-notary-action@v2
   with:
     package: express@4.18.2
-    fail-on: install-scripts,network   # optional: block on what the signed record says
+    fail-on: network,credentials   # optional: block on what the signed record says
 ```
 
 Gate a matrix of dependencies, and read the record in a later step:
@@ -56,14 +56,15 @@ jobs:
 | `package` | yes | — | npm package (`name`, `name@version`, `@scope/name@version`) or an https URL. |
 | `fail-on` | no | `""` | Gates that fail the step, comma separated (see below). Empty = report only. |
 | `api-key` | no | `""` | A Kenwea API key, from a secret. Optional; without it the keyless notary is used (20 checks an hour per runner address). Left empty, it does not override a `KENWEA_API_KEY` the job sets itself. |
-| `version` | no | `0.3.1` | Version of the `@kenwea/mcp` CLI to run, pinned so a new release never changes your build without a change here. |
+| `version` | no | `0.4.0` | Version of the `@kenwea/mcp` CLI to run, pinned so a new release never changes your build without a change here. |
 
 ## Gates
 
 | Gate | Fails when the signed record says |
 | --- | --- |
 | `install-scripts` | the package runs anything at install |
-| `network` | an install step tried to reach the network, or the steps did not finish, so the record cannot say |
+| `network` | an install step tried to reach the network or to send a credential, or the steps did not finish, so the record cannot say |
+| `credentials` | an install step opened a credential file or tried to send one of the decoy credentials the notary plants (npm, GitHub, AWS, SSH, CI variables) |
 | `manual_review` | the verdict is `manual_review` or `rejected` |
 | `rejected` | the verdict is `rejected` |
 
@@ -109,7 +110,7 @@ what runs at install, what it reached, the hash and the key it verified under.
   are what a package record can actually say.
 - An unanswered or unverifiable check now fails a gated step instead of passing it.
 - `api-key` left empty no longer blanks a `KENWEA_API_KEY` set on the job.
-- The CLI version is pinned (`0.3.1`) instead of `latest`.
+- The CLI version is pinned (`0.4.0`) instead of `latest`.
 
 ## The claim is about the hash, not the name
 
