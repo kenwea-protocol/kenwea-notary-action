@@ -13,8 +13,17 @@ branding:
 
 inputs:
   package:
-    description: "npm package (name, name@version, @scope/name@version) or an https URL to check."
-    required: true
+    description: "npm package (name, name@version, @scope/name@version) or an https URL to check. Give this or lockfile."
+    required: false
+    default: ""
+  lockfile:
+    description: "Path to a package-lock.json (version 2 or 3) to check the whole dependency tree. Only the packages it marks hasInstallScript are sent; each gets its signed record, verified in the runner. Give this or package."
+    required: false
+    default: ""
+  wait:
+    description: "With lockfile: how many seconds to wait for packages the notary has not checked yet (they are checked in the background). A gate cannot pass on a package without a record."
+    required: false
+    default: "600"
   fail-on:
     description: "Gates that fail the step, comma separated: install-scripts (it runs anything at install), network (an install step tried to reach the network or to send a credential, or did not finish), credentials (an install step read or sent a decoy credential), manual_review, rejected. Empty = report only. A gate that gets no answer, or an answer that does not verify, fails closed."
     required: false
@@ -26,12 +35,21 @@ inputs:
   version:
     description: "Version of the @kenwea/mcp CLI to run. Pinned so a new release never changes a build without a change here."
     required: false
-    default: "0.4.0"
+    default: "0.5.0"
 
 outputs:
   verdict:
-    description: "approved | manual_review | rejected | notarized, from the signed record (empty when not checked)."
+    description: "approved | manual_review | rejected | notarized, from the signed record (empty when not checked, and with lockfile)."
     value: ${{ steps.notary.outputs.verdict }}
+  level:
+    description: "What the record means, in one word: nothing_runs, quiet, network, reads_credentials, sends_credentials, unfinished. With lockfile, the worst level in the tree."
+    value: ${{ steps.notary.outputs.level }}
+  findings:
+    description: "With lockfile: how many packages tried the network or touched a decoy credential."
+    value: ${{ steps.notary.outputs.findings }}
+  pending:
+    description: "With lockfile: how many packages that run something at install had no record yet."
+    value: ${{ steps.notary.outputs.pending }}
   reason-code:
     description: "The signed reason code, for example ran_ok, ran_tried_network, no_install_steps, install_step_failed, step_timed_out."
     value: ${{ steps.notary.outputs.reason-code }}
@@ -62,6 +80,8 @@ runs:
       run: bash "${GITHUB_ACTION_PATH}/run.sh"
       env:
         KENWEA_PACKAGE: ${{ inputs.package }}
+        KENWEA_LOCKFILE: ${{ inputs.lockfile }}
+        KENWEA_WAIT: ${{ inputs.wait }}
         KENWEA_FAIL_ON: ${{ inputs.fail-on }}
         KENWEA_INPUT_API_KEY: ${{ inputs.api-key }}
         KENWEA_MCP_VERSION: ${{ inputs.version }}

@@ -36,9 +36,12 @@ process.stdin.on("data", (d) => (raw += d)).on("end", () => {
     if (outFile) fs.appendFileSync(outFile, `${k}=${clean(v)}\n`);
   };
 
+  if (Array.isArray(j.results)) return emitTree(j, exitCode, set, clean);
+
   const observed = facts.observed && typeof facts.observed === "object" ? facts.observed : {};
   const reached = [...(observed.dns || []), ...(observed.network || [])];
   set("verdict", facts.verdict || "");
+  set("level", facts.level || "");
   set("reason-code", facts.reasonCode || "");
   set("install-steps", Array.isArray(facts.installSteps) ? facts.installSteps.join(",") : "");
   set("reached", reached.join(","));
@@ -81,3 +84,32 @@ process.stdin.on("data", (d) => (raw += d)).on("end", () => {
     fs.appendFileSync(sumFile, lines.join("\n") + "\n");
   }
 });
+
+// A whole tree (check-tree --json): one row per package that runs something at
+// install, from the facts the CLI verified.
+function emitTree(j, exitCode, set, clean) {
+  const order = ["sends_credentials", "reads_credentials", "network", "unfinished", "quiet", "nothing_runs"];
+  const rows = j.results;
+  const answered = rows.filter((r) => r.facts && typeof r.facts === "object");
+  const levels = answered.map((r) => r.facts.level || "unfinished");
+  const worst = order.find((l) => levels.includes(l)) || (answered.length ? "quiet" : "");
+  const findings = answered.filter((r) => ["network", "reads_credentials", "sends_credentials"].includes(r.facts.level));
+  const pending = rows.filter((r) => r.status !== "answered" && r.status !== "unverified");
+  set("level", worst);
+  set("findings", findings.length);
+  set("pending", pending.length);
+  set("checked", answered.length ? "true" : "false");
+  set("signed", exitCode === 0 || exitCode === 1 ? "true" : "false");
+  set("exit-code", exitCode);
+  const sumFile = process.env.GITHUB_STEP_SUMMARY;
+  if (!sumFile) return;
+  const lines = ["### Kenwea notary: dependency tree", "",
+    `${clean(j.packages)} packages; ${clean(j.packages - j.runSomething)} run nothing of their own at install (the lockfile says so; their names stayed in the runner). ${clean(j.runSomething)} run something.`, "",
+    "| package | level | status |", "| --- | --- | --- |"];
+  const rank = (r) => order.indexOf(r.facts ? r.facts.level : "unfinished");
+  for (const r of [...rows].sort((a, b) => rank(a) - rank(b))) {
+    lines.push(`| \`${clean(r.name)}@${clean(r.version)}\` | ${r.facts ? `\`${clean(r.facts.level)}\`` : "-"} | ${clean(r.status)} |`);
+  }
+  lines.push("", "_Each record is signed and was verified in this runner against https://www.kenwea.com/.well-known/kenwea-attestation-keys.json, including that it is about the bytes your lockfile installs._");
+  fs.appendFileSync(sumFile, lines.join("\n") + "\n");
+}

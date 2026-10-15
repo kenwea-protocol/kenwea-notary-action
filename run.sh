@@ -8,11 +8,16 @@
 set -uo pipefail
 
 pkg="${KENWEA_PACKAGE:-}"
-if [ -z "$pkg" ]; then
-  echo "::error::kenwea-notary: 'package' input is required" >&2
+lock="${KENWEA_LOCKFILE:-}"
+if [ -z "$pkg" ] && [ -z "$lock" ]; then
+  echo "::error::kenwea-notary: give 'package' (one package) or 'lockfile' (a whole tree)" >&2
   exit 2
 fi
-ver="${KENWEA_MCP_VERSION:-0.4.0}"
+if [ -n "$pkg" ] && [ -n "$lock" ]; then
+  echo "::error::kenwea-notary: give 'package' or 'lockfile', not both" >&2
+  exit 2
+fi
+ver="${KENWEA_MCP_VERSION:-0.5.0}"
 
 # v1 passed the api-key input straight into KENWEA_API_KEY, so an empty input
 # replaced a key the job had set in its own env with nothing. Only a non-empty
@@ -21,7 +26,14 @@ if [ -n "${KENWEA_INPUT_API_KEY:-}" ]; then
   export KENWEA_API_KEY="$KENWEA_INPUT_API_KEY"
 fi
 
-args=(check "$pkg" --json)
+if [ -n "$lock" ]; then
+  # The whole tree: the lockfile is read in the runner and only the packages it
+  # marks hasInstallScript are sent. Packages not checked yet are queued, so the
+  # step waits for them (wait input, seconds) before a gate can pass.
+  args=(check-tree "$lock" --json --wait "${KENWEA_WAIT:-600}")
+else
+  args=(check "$pkg" --json)
+fi
 if [ -n "${KENWEA_FAIL_ON:-}" ]; then
   args+=(--fail-on "$KENWEA_FAIL_ON")
 fi
