@@ -17,7 +17,7 @@ if [ -n "$pkg" ] && [ -n "$lock" ]; then
   echo "::error::kenwea-notary: give 'package' or 'lockfile', not both" >&2
   exit 2
 fi
-ver="${KENWEA_MCP_VERSION:-0.5.0}"
+ver="${KENWEA_MCP_VERSION:-0.6.0}"
 
 # v1 passed the api-key input straight into KENWEA_API_KEY, so an empty input
 # replaced a key the job had set in its own env with nothing. Only a non-empty
