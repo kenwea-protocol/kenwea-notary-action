@@ -17,7 +17,7 @@ inputs:
     required: false
     default: ""
   lockfile:
-    description: "Path to a package-lock.json (version 2 or 3), pnpm-lock.yaml or yarn.lock to check the whole dependency tree. Only the packages that run something at install are sent (where the lockfile does not say, the npm registry is asked from the runner); each gets its signed record, verified in the runner. Give this or package."
+    description: "Path to a package-lock.json (version 2 or 3), pnpm-lock.yaml or yarn.lock to check the whole dependency tree. Only the packages that run something at install and your direct dependencies are sent (where the lockfile does not say, the npm registry is asked from the runner); the tree is checked through the direct dependencies, so a step runs under the package that pulled it in, and each record is verified in the runner. Give this or package."
     required: false
     default: ""
   wait:
@@ -35,7 +35,7 @@ inputs:
   version:
     description: "Version of the @kenwea/mcp CLI to run. Pinned so a new release never changes a build without a change here."
     required: false
-    default: "0.6.0"
+    default: "0.7.0"
 
 outputs:
   verdict:

@@ -94,7 +94,8 @@ function emitTree(j, exitCode, set, clean) {
   const levels = answered.map((r) => r.facts.level || "unfinished");
   const worst = order.find((l) => levels.includes(l)) || (answered.length ? "quiet" : "");
   const findings = answered.filter((r) => ["network", "reads_credentials", "sends_credentials"].includes(r.facts.level));
-  const pending = rows.filter((r) => r.status !== "answered" && r.status !== "unverified");
+  // A covered package is answered by the direct dependency that covers it.
+  const pending = rows.filter((r) => r.status !== "answered" && r.status !== "unverified" && r.status !== "covered");
   set("level", worst);
   set("findings", findings.length);
   set("pending", pending.length);
@@ -104,11 +105,16 @@ function emitTree(j, exitCode, set, clean) {
   const sumFile = process.env.GITHUB_STEP_SUMMARY;
   if (!sumFile) return;
   const lines = ["### Kenwea notary: dependency tree", "",
-    `${clean(j.packages)} packages; ${clean(j.packages - j.runSomething)} run nothing of their own at install (the lockfile says so; their names stayed in the runner). ${clean(j.runSomething)} run something.`, "",
+    `${clean(j.packages)} packages; ${clean(j.packages - j.runSomething)} run nothing of their own at install (the lockfile says so; their names stayed in the runner, except your direct dependencies'). ${clean(j.runSomething)} run something.`,
+    j.checkedThrough === "direct_dependencies"
+      ? "Checked through your direct dependencies, each with its whole tree, so a step runs under the package that pulled it in."
+      : "The lockfile does not say which packages are your own, so each was checked on its own; a step that acts only under its parent can look quiet.",
+    "",
     "| package | level | status |", "| --- | --- | --- |"];
   const rank = (r) => order.indexOf(r.facts ? r.facts.level : "unfinished");
   for (const r of [...rows].sort((a, b) => rank(a) - rank(b))) {
-    lines.push(`| \`${clean(r.name)}@${clean(r.version)}\` | ${r.facts ? `\`${clean(r.facts.level)}\`` : "-"} | ${clean(r.status)} |`);
+    const status = r.status === "covered" ? `covered, run inside \`${clean(r.coveredBy)}\`` : clean(r.status);
+    lines.push(`| \`${clean(r.name)}@${clean(r.version)}\` | ${r.facts ? `\`${clean(r.facts.level)}\`` : "-"} | ${status} |`);
   }
   lines.push("", "_Each record is signed and was verified in this runner against https://www.kenwea.com/.well-known/kenwea-attestation-keys.json, including that it is about the bytes your lockfile installs._");
   fs.appendFileSync(sumFile, lines.join("\n") + "\n");
