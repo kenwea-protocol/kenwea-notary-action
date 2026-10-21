@@ -10,7 +10,7 @@ in your runner** before any output is set: the signature against Kenwea's publis
 key list, and the tarball against the registry's `dist.integrity`.
 
 It is a thin wrapper around the published [`@kenwea/mcp`](https://www.npmjs.com/package/@kenwea/mcp)
-CLI (`npx -y @kenwea/mcp@0.7.0 check … --json`), so the Action and the tool can never
+CLI (`npx -y @kenwea/mcp@0.7.1 check … --json`), so the Action and the tool can never
 drift.
 
 > **Note:** this directory is the development source. The action is published at
@@ -18,7 +18,7 @@ drift.
 > The equivalent that needs no action at all is one `run:` step:
 >
 > ```yaml
-> - run: npx -y @kenwea/mcp@0.7.0 check express@4.18.2 --fail-on install-scripts,network
+> - run: npx -y @kenwea/mcp@0.7.1 check express@4.18.2 --fail-on install-scripts,network
 > ```
 
 ## Usage
@@ -41,7 +41,7 @@ The whole dependency tree, in one step (v2.2):
     wait: 600                        # seconds to wait for packages not checked yet
 ```
 
-The lockfile is read in the runner, and only the packages it marks `hasInstallScript` (usually a few percent of a tree) and your project's direct dependencies are sent to the notary; the names of the rest stay in the runner. Since v2.4.0 (CLI 0.7.0) the tree is checked through those direct dependencies, each with its whole tree, because a step runs under the package that pulled it in: `@scarf/scarf` reports install telemetry only for the package that depends on it, so checked alone it looked quiet. A package under a direct dependency shows as covered, answered by that dependency's record. A yarn.lock does not name direct dependencies, so the package.json beside it is read; without one, each package is checked on its own and the summary says so. Each comes back with its stored signed record, verified in the runner, including that it is about the bytes your lockfile installs, or is queued and checked in the background. A gate cannot pass on a package without a record. The job summary lists every package that runs something at install with its level.
+The lockfile is read in the runner, and only the packages it marks `hasInstallScript` (usually a few percent of a tree) and your project's direct dependencies are sent to the notary; the names of the rest stay in the runner. Since v2.4.0 (CLI 0.7.0) the tree is checked through those direct dependencies, and since v2.4.1 (CLI 0.7.1) in a pnpm workspace those are every workspace package's dependencies, not only the root's, each with its whole tree, because a step runs under the package that pulled it in: `@scarf/scarf` reports install telemetry only for the package that depends on it, so checked alone it looked quiet. A package under a direct dependency shows as covered, answered by that dependency's record. A yarn.lock does not name direct dependencies, so the package.json beside it is read; without one, each package is checked on its own and the summary says so. Each comes back with its stored signed record, verified in the runner, including that it is about the bytes your lockfile installs, or is queued and checked in the background. A gate cannot pass on a package without a record. The job summary lists every package that runs something at install with its level.
 
 Gate a matrix of dependencies, and read the record in a later step:
 
@@ -71,7 +71,7 @@ jobs:
 | `wait` | no | `600` | With `lockfile`: seconds to wait for packages the notary has not checked yet. |
 | `fail-on` | no | `""` | Gates that fail the step, comma separated (see below). Empty = report only. |
 | `api-key` | no | `""` | A Kenwea API key, from a secret. Optional; without it the keyless notary is used (20 checks an hour per runner address). Left empty, it does not override a `KENWEA_API_KEY` the job sets itself. |
-| `version` | no | `0.7.0` | Version of the `@kenwea/mcp` CLI to run, pinned so a new release never changes your build without a change here. |
+| `version` | no | `0.7.1` | Version of the `@kenwea/mcp` CLI to run, pinned so a new release never changes your build without a change here. |
 
 ## Gates
 
@@ -125,7 +125,7 @@ what runs at install, what it reached, the hash and the key it verified under.
   are what a package record can actually say.
 - An unanswered or unverifiable check now fails a gated step instead of passing it.
 - `api-key` left empty no longer blanks a `KENWEA_API_KEY` set on the job.
-- The CLI version is pinned (`0.7.0`) instead of `latest`.
+- The CLI version is pinned (`0.7.1`) instead of `latest`.
 
 ## The claim is about the hash, not the name
 

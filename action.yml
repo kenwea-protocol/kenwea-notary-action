@@ -35,7 +35,7 @@ inputs:
   version:
     description: "Version of the @kenwea/mcp CLI to run. Pinned so a new release never changes a build without a change here."
     required: false
-    default: "0.7.0"
+    default: "0.7.1"
 
 outputs:
   verdict:
