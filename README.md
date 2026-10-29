@@ -10,7 +10,7 @@ in your runner** before any output is set: the signature against Kenwea's publis
 key list, and the tarball against the registry's `dist.integrity`.
 
 It is a thin wrapper around the published [`@kenwea/mcp`](https://www.npmjs.com/package/@kenwea/mcp)
-CLI (`npx -y @kenwea/mcp@0.7.1 check … --json`), so the Action and the tool can never
+CLI (`npx -y @kenwea/mcp@0.7.2 check … --json`), so the Action and the tool can never
 drift.
 
 > **Note:** this directory is the development source. The action is published at
@@ -18,7 +18,7 @@ drift.
 > The equivalent that needs no action at all is one `run:` step:
 >
 > ```yaml
-> - run: npx -y @kenwea/mcp@0.7.1 check express@4.18.2 --fail-on install-scripts,network
+> - run: npx -y @kenwea/mcp@0.7.2 check express@4.18.2 --fail-on install-scripts,network
 > ```
 
 ## Usage
@@ -62,6 +62,28 @@ jobs:
         run: echo "${{ matrix.package }} runs at install: ${{ steps.notary.outputs.install-steps }}"
 ```
 
+## A comment on pull requests
+
+With `lockfile` and `pr-comment: true`, on a `pull_request` event, the base branch's lockfile is checked too, without gates and without waiting, and one comment is written on the pull request and updated on every run. It lists the packages that run something at install whose version changed in the pull request, and what the new record shows that the old one does not: a level that went up, a host first reached, a decoy credential opened or sent, a new install step. It says nothing when nothing changed, unless it has commented before.
+
+```yaml
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  notarize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: kenwea-protocol/kenwea-notary-action@v2
+        with:
+          lockfile: package-lock.json
+          pr-comment: true
+```
+
+A difference between two records is a lead, not a verdict, and the comment says so: two runs can differ for the sandbox's reasons. When both versions ran exactly the same install code (no step of their own, the same dependency steps at the same versions), a host only one run reached is listed in brackets and not counted. Everything taken from a record is written inside code spans, so a package or host name cannot mention anyone or add a link. The comment never changes the step's result; if it cannot be written (no permission, a fork's read-only token), the log says why.
+
 ## Inputs
 
 | Input | Required | Default | Description |
@@ -71,7 +93,9 @@ jobs:
 | `wait` | no | `600` | With `lockfile`: seconds to wait for packages the notary has not checked yet. |
 | `fail-on` | no | `""` | Gates that fail the step, comma separated (see below). Empty = report only. |
 | `api-key` | no | `""` | A Kenwea API key, from a secret. Optional; without it the keyless notary is used (20 checks an hour per runner address). Left empty, it does not override a `KENWEA_API_KEY` the job sets itself. |
-| `version` | no | `0.7.1` | Version of the `@kenwea/mcp` CLI to run, pinned so a new release never changes your build without a change here. |
+| `version` | no | `0.7.2` | Version of the `@kenwea/mcp` CLI to run, pinned so a new release never changes your build without a change here. |
+| `pr-comment` | no | `false` | With `lockfile`, on a pull request: write one comment listing what changed between the base and the head records (see above). Needs `pull-requests: write`. |
+| `github-token` | no | the job's token | Token for the pull request comment. It is passed only to the comment script, never to the CLI. |
 
 ## Gates
 
@@ -125,7 +149,7 @@ what runs at install, what it reached, the hash and the key it verified under.
   are what a package record can actually say.
 - An unanswered or unverifiable check now fails a gated step instead of passing it.
 - `api-key` left empty no longer blanks a `KENWEA_API_KEY` set on the job.
-- The CLI version is pinned (`0.7.1`) instead of `latest`.
+- The CLI version is pinned (`0.7.2`) instead of `latest`.
 
 ## The claim is about the hash, not the name
 

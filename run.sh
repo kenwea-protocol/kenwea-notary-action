@@ -6,6 +6,9 @@
 # gates the build. No logic about verdicts lives here -- the CLI decides and
 # verifies, this shell only wires it to GitHub.
 set -uo pipefail
+# The pull request comment's token is kept out of the CLI's environment.
+pr_token="${KENWEA_GITHUB_TOKEN:-}"
+unset KENWEA_GITHUB_TOKEN
 
 pkg="${KENWEA_PACKAGE:-}"
 lock="${KENWEA_LOCKFILE:-}"
@@ -60,5 +63,31 @@ esac
 # Emit outputs and the summary whether or not the gate failed, so a later step can
 # read the verdict even on a blocked build.
 printf '%s' "$result" | KENWEA_EXIT_CODE="$code" node "${GITHUB_ACTION_PATH}/emit.js"
+
+# The pull request comment (pr-comment: true, lockfile only): the base branch's
+# lockfile is checked too, without gates and without waiting, and prdiff.js
+# writes or updates one comment saying what changed. Anything that goes wrong
+# here is a warning; it never changes the step's exit code.
+if [ "${KENWEA_PR_COMMENT:-false}" = "true" ] && [ -n "$lock" ] && [ -n "$result" ]; then
+  case "${GITHUB_EVENT_NAME:-}" in
+    pull_request|pull_request_target)
+      tmp="${RUNNER_TEMP:-/tmp}/kenwea-notary-pr"
+      mkdir -p "$tmp/base"
+      printf '%s' "$result" > "$tmp/head.json"
+      basefile="$tmp/base/$(basename "$lock")"
+      : > "$tmp/base.json"
+      if git fetch --no-tags --depth=1 origin "${GITHUB_BASE_REF:-}" >/dev/null 2>&1 && git show "FETCH_HEAD:./$lock" > "$basefile" 2>/dev/null; then
+        npx -y "@kenwea/mcp@${ver}" check-tree "$basefile" --json --wait 0 > "$tmp/base.json" 2>/dev/null || true
+      else
+        echo "kenwea-notary: the base branch has no ${lock}; every package counts as new"
+      fi
+      # The token reaches only this script, never the npx runs above.
+      GITHUB_TOKEN="$pr_token" node "${GITHUB_ACTION_PATH}/prdiff.js" "$tmp/head.json" "$tmp/base.json" || true
+      ;;
+    *)
+      echo "kenwea-notary: pr-comment is set but this is not a pull_request event; no comment"
+      ;;
+  esac
+fi
 
 exit "$code"

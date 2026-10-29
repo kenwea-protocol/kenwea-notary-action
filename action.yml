@@ -35,7 +35,15 @@ inputs:
   version:
     description: "Version of the @kenwea/mcp CLI to run. Pinned so a new release never changes a build without a change here."
     required: false
-    default: "0.7.1"
+    default: "0.7.2"
+  pr-comment:
+    description: "With lockfile, on a pull_request event: 'true' also checks the base branch's lockfile and writes one comment on the pull request (updated on every run) listing the packages that run something at install whose version changed, and what the new record shows that the old one does not. Needs permissions: pull-requests: write. Never changes the step's result."
+    required: false
+    default: "false"
+  github-token:
+    description: "Token for the pull request comment. The job's own token is enough."
+    required: false
+    default: ${{ github.token }}
 
 outputs:
   verdict:
@@ -85,3 +93,5 @@ runs:
         KENWEA_FAIL_ON: ${{ inputs.fail-on }}
         KENWEA_INPUT_API_KEY: ${{ inputs.api-key }}
         KENWEA_MCP_VERSION: ${{ inputs.version }}
+        KENWEA_PR_COMMENT: ${{ inputs.pr-comment }}
+        KENWEA_GITHUB_TOKEN: ${{ inputs.github-token }}
