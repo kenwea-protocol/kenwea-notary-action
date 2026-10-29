@@ -1,0 +1,16 @@
+# Temporary: tests pr-comment on a real pull request (2026-10-29). Removed with the branches.
+name: pr-comment test
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  notarize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          lockfile: test/package-lock.json
+          pr-comment: true
+          wait: "120"
