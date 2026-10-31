@@ -1,5 +1,5 @@
 name: "Kenwea Notary"
-description: "Runs an npm package's install steps in Kenwea's sandbox, verifies the signed record in the runner, and can fail the build."
+description: "Runs the install steps of an npm package in a sandbox, verifies the signed record in the runner, and can fail the build."
 author: "Kenwea Protocol"
 
 # A composite action, on purpose: it runs the published @kenwea/mcp CLI rather than

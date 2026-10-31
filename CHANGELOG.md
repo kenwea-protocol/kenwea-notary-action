@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.5.3 (2026-10-31)
+
+Text only, for the Marketplace page. The description has no apostrophes, which the Marketplace showed as spaces. The README no longer says dependencies are not installed: since 2026-10-15 the whole tree is installed and every install step in it runs. It also drops a note meant for the development copy. Nothing about what the Action does changes.
+
 ## v2.5.2 (2026-10-31)
 
 The Action's description is shorter, so it fits the GitHub Marketplace's 125 character limit. Nothing about what the Action does changes.

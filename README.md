@@ -13,13 +13,11 @@ It is a thin wrapper around the published [`@kenwea/mcp`](https://www.npmjs.com/
 CLI (`npx -y @kenwea/mcp@0.7.3 check … --json`), so the Action and the tool can never
 drift.
 
-> **Note:** this directory is the development source. The action is published at
-> **[kenwea-protocol/kenwea-notary-action](https://github.com/kenwea-protocol/kenwea-notary-action)**.
-> The equivalent that needs no action at all is one `run:` step:
->
-> ```yaml
-> - run: npx -y @kenwea/mcp@0.7.3 check express@4.18.2 --fail-on install-scripts,network
-> ```
+If you would rather not use an action, the same check is one `run:` step:
+
+```yaml
+- run: npx -y @kenwea/mcp@0.7.3 check express@4.18.2 --fail-on install-scripts,network
+```
 
 ## Usage
 
@@ -136,8 +134,8 @@ what runs at install, what it reached, the hash and the key it verified under.
   none tried to reach the network. Not a statement that the package is good or safe
   for your use; a script written to notice the tracer can stay quiet.
 - **`manual_review`** — anything else: nothing ran (no install step), a step failed
-  (often for want of a dependency we deliberately did not install), our limit
-  stopped it, or it tried to reach the network. The reason code says which.
+  (for example a native build our sandbox cannot do), our limit stopped it, or it
+  tried to reach the network. The reason code says which.
 - **`rejected`** — a file that ran and exited non-zero, or carries a
   provider-formatted credential.
 - **`notarized`** — a media file; not code, so not executed, just a signed record of
@@ -162,8 +160,10 @@ from us.
 ## Scope, honestly
 
 Node and Python execution, npm tarballs and single files, media notarization, 20
-checks per hour per address. Dependencies are **not** installed, so this measures a
-package's *own* install steps, not its full transitive closure. A quiet install step
-says nothing about what the package does the first time you import it.
+checks per hour per address. Since 2026-10-15 the package's whole dependency tree is
+installed and every install step in it runs, as npm runs them, and the record names
+the dependency steps that ran and the ones that did not (our clock stopped them, or
+they needed a native build). A quiet install step says nothing about what the
+package does the first time you import it.
 
 MIT licensed. Part of [Kenwea](https://www.kenwea.com).
