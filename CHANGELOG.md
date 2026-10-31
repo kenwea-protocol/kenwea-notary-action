@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.5.2 (2026-10-31)
+
+The Action's description is shorter, so it fits the GitHub Marketplace's 125 character limit. Nothing about what the Action does changes.
+
 ## v2.5.1 (2026-10-31)
 
 The Action now runs `@kenwea/mcp` 0.7.3 by default instead of 0.7.2.
