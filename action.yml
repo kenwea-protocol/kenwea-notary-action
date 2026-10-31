@@ -35,7 +35,7 @@ inputs:
   version:
     description: "Version of the @kenwea/mcp CLI to run. Pinned so a new release never changes a build without a change here."
     required: false
-    default: "0.7.2"
+    default: "0.7.3"
   pr-comment:
     description: "With lockfile, on a pull_request event: 'true' also checks the base branch's lockfile and writes one comment on the pull request (updated on every run) listing the packages that run something at install whose version changed, and what the new record shows that the old one does not. Needs permissions: pull-requests: write. Never changes the step's result."
     required: false

@@ -56,7 +56,7 @@ process.stdin.on("data", (d) => (raw += d)).on("end", () => {
       0: "checked and verified; no gate tripped",
       1: "a fail-on gate tripped",
       2: "the input was wrong",
-      3: "no answer: not resolvable, not fetchable, refused or unreachable",
+      3: "no answer: not resolvable, not fetchable, refused or unreachable, or Kenwea's published key list could not be read",
       4: "the record did NOT verify, so nothing in it should be relied on",
     };
     const lines = [

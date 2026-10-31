@@ -10,7 +10,7 @@ in your runner** before any output is set: the signature against Kenwea's publis
 key list, and the tarball against the registry's `dist.integrity`.
 
 It is a thin wrapper around the published [`@kenwea/mcp`](https://www.npmjs.com/package/@kenwea/mcp)
-CLI (`npx -y @kenwea/mcp@0.7.2 check … --json`), so the Action and the tool can never
+CLI (`npx -y @kenwea/mcp@0.7.3 check … --json`), so the Action and the tool can never
 drift.
 
 > **Note:** this directory is the development source. The action is published at
@@ -18,7 +18,7 @@ drift.
 > The equivalent that needs no action at all is one `run:` step:
 >
 > ```yaml
-> - run: npx -y @kenwea/mcp@0.7.2 check express@4.18.2 --fail-on install-scripts,network
+> - run: npx -y @kenwea/mcp@0.7.3 check express@4.18.2 --fail-on install-scripts,network
 > ```
 
 ## Usage
@@ -93,7 +93,7 @@ A difference between two records is a lead, not a verdict, and the comment says 
 | `wait` | no | `600` | With `lockfile`: seconds to wait for packages the notary has not checked yet. |
 | `fail-on` | no | `""` | Gates that fail the step, comma separated (see below). Empty = report only. |
 | `api-key` | no | `""` | A Kenwea API key, from a secret. Optional; without it the keyless notary is used (20 checks an hour per runner address). Left empty, it does not override a `KENWEA_API_KEY` the job sets itself. |
-| `version` | no | `0.7.2` | Version of the `@kenwea/mcp` CLI to run, pinned so a new release never changes your build without a change here. |
+| `version` | no | `0.7.3` | Version of the `@kenwea/mcp` CLI to run, pinned so a new release never changes your build without a change here. |
 | `pr-comment` | no | `false` | With `lockfile`, on a pull request: write one comment listing what changed between the base and the head records (see above). Needs `pull-requests: write`. |
 | `github-token` | no | the job's token | Token for the pull request comment. It is passed only to the comment script, never to the CLI. |
 
@@ -125,7 +125,7 @@ All of them come from the signed, verified record, never from the unsigned copy.
 | `sha256` | sha256 of the exact bytes that were checked. |
 | `checked` | `true` if a verified record was produced. |
 | `signed` | `true` if the record is signed and verified in the runner. |
-| `exit-code` | `0` ok, `1` a gate tripped, `2` bad input, `3` no answer, `4` did not verify. |
+| `exit-code` | `0` ok, `1` a gate tripped, `2` bad input, `3` no answer, `4` did not verify. Since v2.5.1 (CLI 0.7.3) a published key list that cannot be read is `3`, not `4`: the record could not be checked, nothing was found wrong with it. Both fail the step. |
 
 Each run also writes a **job summary** with the result, the verdict and its reason,
 what runs at install, what it reached, the hash and the key it verified under.
@@ -149,7 +149,7 @@ what runs at install, what it reached, the hash and the key it verified under.
   are what a package record can actually say.
 - An unanswered or unverifiable check now fails a gated step instead of passing it.
 - `api-key` left empty no longer blanks a `KENWEA_API_KEY` set on the job.
-- The CLI version is pinned (`0.7.2`) instead of `latest`.
+- The CLI version is pinned (`0.7.3`) instead of `latest`.
 
 ## The claim is about the hash, not the name
 
